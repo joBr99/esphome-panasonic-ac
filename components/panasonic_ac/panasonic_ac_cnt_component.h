@@ -23,6 +23,7 @@ enum class CNTState {
 
 class PanasonicACCNT : public PanasonicACBase {
  public:
+  void set_current_power_consumption_sensor(sensor::Sensor *sensor) { this->current_power_consumption_sensor_ = sensor; }
   void control(const climate::ClimateCall &call) override;
 
   void on_horizontal_swing_change(const std::string &swing) override;
@@ -35,6 +36,7 @@ class PanasonicACCNT : public PanasonicACBase {
   void loop() override;
 
  protected:
+  sensor::Sensor *current_power_consumption_sensor_ = nullptr;
   CNTState state_ = CNTState::Initializing;
 
   std::vector<uint8_t> data_ = std::vector<uint8_t>(10);  // last-known 10-byte CNT payload
@@ -54,4 +56,3 @@ class PanasonicACCNT : public PanasonicACBase {
 
 }  // namespace panasonic_ac
 }  // namespace esphome
-

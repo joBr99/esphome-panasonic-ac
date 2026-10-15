@@ -1,4 +1,5 @@
 #include "panasonic_ac_cnt_component.h"
+#include "panasonic_ac_cnt_power.h"
 
 #include "esphome/core/log.h"
 
@@ -268,6 +269,11 @@ void PanasonicACCNT::set_data_(bool publish) {
   update_target_temperature((uint8_t) this->data_[1]);
 
   if (publish) {
+    if (this->current_power_consumption_sensor_ != nullptr) {
+      // Publish every poll, even unchanged, so energy integration keeps updating.
+      this->current_power_consumption_sensor_->publish_state(
+          cnt::decode_power(this->rx_buffer_.data(), this->rx_buffer_.size()));
+    }
     // Current temperature (if available) may be at rx_buffer_[18] or rx_buffer_[21] per DomiStyle
     if (this->rx_buffer_.size() > 22) {
       if (this->rx_buffer_[18] != 0x80)
@@ -492,4 +498,3 @@ void PanasonicACCNT::on_quiet_change(bool state) {
 
 }  // namespace panasonic_ac
 }  // namespace esphome
-

@@ -5,6 +5,8 @@ from esphome.const import (
     DEVICE_CLASS_TEMPERATURE,
     STATE_CLASS_MEASUREMENT,
     UNIT_CELSIUS,
+    DEVICE_CLASS_POWER,
+    UNIT_WATT,
 )
 import esphome.codegen as cg
 import esphome.config_validation as cv
@@ -30,6 +32,7 @@ CONF_POWERFUL_SWITCH_ID = "powerful_switch_id"
 CONF_QUIET_SWITCH_ID = "quiet_switch_id"
 CONF_FAN_MODE_STATUS = "fan_mode_status"
 CONF_PRESET_STATUS = "preset_status"
+CONF_CURRENT_POWER_CONSUMPTION = "current_power_consumption"
 
 
 CONF_TYPE = "type"
@@ -59,7 +62,16 @@ WLAN_SCHEMA = climate.climate_schema(PanasonicAC).extend(
 ).extend(uart.UART_DEVICE_SCHEMA)
 
 CNT_SCHEMA = climate.climate_schema(PanasonicACCNT).extend(
-    {cv.GenerateID(): cv.declare_id(PanasonicACCNT), **COMMON_SCHEMA}
+    {
+        cv.GenerateID(): cv.declare_id(PanasonicACCNT),
+        **COMMON_SCHEMA,
+        cv.Optional(CONF_CURRENT_POWER_CONSUMPTION): sensor.sensor_schema(
+            unit_of_measurement=UNIT_WATT,
+            accuracy_decimals=0,
+            device_class=DEVICE_CLASS_POWER,
+            state_class=STATE_CLASS_MEASUREMENT,
+        ),
+    }
 ).extend(uart.UART_DEVICE_SCHEMA)
 
 # Use a typed schema so the generated C++ uses the correct concrete class.
@@ -75,6 +87,10 @@ async def to_code(config):
     await climate.register_climate(var, config)
     await cg.register_component(var, config)
     await uart.register_uart_device(var, config)
+
+    if CONF_CURRENT_POWER_CONSUMPTION in config:
+        sens = await sensor.new_sensor(config[CONF_CURRENT_POWER_CONSUMPTION])
+        cg.add(var.set_current_power_consumption_sensor(sens))
 
     if CONF_OUTSIDE_TEMPERATURE in config:
         sens = await sensor.new_sensor(config[CONF_OUTSIDE_TEMPERATURE])

@@ -250,6 +250,8 @@ climate:
     preset_status:
       name: "AC Preset Status"
 
+```
+
 ### Minimal Example (CN-CNT / CZ-TACG1)
 
 For CN-CNT, set `type: cnt`. (Select/switch IDs are optional, but recommended.)
@@ -271,7 +273,56 @@ CNT swing select options match the WLAN spelling/capitalization:
 - Vertical: `Up`, `Mid Up`, `Mid`, `Mid Down`, `Down`, `Swing`, `Auto`
 - Horizontal: `Left`, `Centre Left`, `Centre`, `Centre Right`, `Right`, `Auto`
 
+### Estimated power and energy (CNT only)
+
+Add `current_power_consumption` to your existing CNT climate entry to expose
+the AC's estimated electrical power in watts. Support and accuracy depend on
+the AC model; this is not a calibrated electricity meter. WLAN does not support
+this option. The CNT decoding follows the
+[d96moe implementation](https://github.com/d96moe/esphome-panasonic-ac/blob/2d314d2060029d36f702491cc16a18e215f064ae/components/panasonic_ac/esppac_cnt.cpp).
+
+```yaml
+climate:
+  - platform: panasonic_ac
+    type: cnt
+    name: "AC"
+    current_power_consumption:
+      name: "AC Estimated Power"
+      id: ac_power
+
+# Optional: accumulate watts over time into kWh for Home Assistant Energy.
+sensor:
+  - platform: integration
+    name: "AC Estimated Energy"
+    sensor: ac_power
+    time_unit: h
+    integration_method: left
+    restore: true
+    filters:
+      - multiply: 0.001
+    unit_of_measurement: kWh
+    accuracy_decimals: 3
+    device_class: energy
+    state_class: total_increasing
+```
+
+Power updates on each valid poll, including unchanged readings. Short replies
+without power data and negative decoded values publish an unknown value instead
+of a false zero or wrapped reading. Energy is calculated by ESPHome's
+[integration sensor](https://esphome.io/components/sensor/integration/), not read
+from an AC energy counter; consumption during ESP downtime cannot be recovered.
+During a communication outage, the last power reading may remain available, so
+the integrated total can be inaccurate across gaps. For a daily breakdown,
+create a daily Utility Meter helper in Home Assistant using the energy entity.
+
 ## Local Development / Testing
+
+Run the standalone CNT power decoder regression test (requires a C++ compiler):
+
+```bash
+c++ -std=c++11 -Wall -Wextra -Werror -I . tests/cnt_power_test.cpp -o /tmp/cnt_power_test
+/tmp/cnt_power_test
+```
 
 ESPHome 2026.x requires **Python 3.11+**. To run the same compile locally:
 
@@ -293,6 +344,7 @@ python -m pip install esphome==2026.1.0
 | `name` | string | **Yes** | The name for the climate device |
 | `type` | string | No | Protocol type: `wlan` (default, DNSK-P11) or `cnt` (CZ-TACG1) |
 | `outside_temperature` | sensor | No | Temperature sensor for outside temperature monitoring |
+| `current_power_consumption` | sensor | No | Estimated electrical power in W (CNT only) |
 | `horizontal_swing_select_id` | ID | No | ID of template select for horizontal swing control |
 | `vertical_swing_select_id` | ID | No | ID of template select for vertical swing control |
 | `nanoex_switch_id` | ID | No | ID of template switch for nanoeX control |

@@ -45,4 +45,20 @@ climate:
   - platform: panasonic_ac
     type: cnt
     name: "CNT Test AC"
+    current_power_consumption:
+      name: "CNT Estimated Power"
+      id: ac_power
 
+sensor:
+  - platform: integration
+    name: "CNT Estimated Energy"
+    sensor: ac_power
+    time_unit: h
+    integration_method: left
+    restore: true
+    filters:
+      - multiply: 0.001
+    unit_of_measurement: kWh
+    accuracy_decimals: 3
+    device_class: energy
+    state_class: total_increasing
